@@ -38,6 +38,13 @@ fi
 
 : ${macprefix:=52:54:77}
 : ${mkclouddriver:=libvirt}
+
+# Handle artifacts dir
+: ${artifacts_dir:=$(pwd)/.artifacts}
+if [ ! -d ${artifacts_dir} ]; then
+  mkdir -p ${artifacts_dir}
+fi
+
 mkcloud_lib_dir=${mkcloud_dir}/lib
 # include separate bash libs
 # NOTE that this is a temporary solution during refactoring of mkcloud
@@ -45,7 +52,7 @@ mkcloud_temporary_scripts="mkcloud-common.sh mkcloud-$mkclouddriver.sh"
 for script in $mkcloud_temporary_scripts; do
     source ${mkcloud_lib_dir}/$script
 done
-mkcconf=mkcloud.config
+mkcconf=${artifacts_dir}/mkcloud.config
 rm -f $mkcconf # we dont want to source old info in the line below
 source $qa_crowbarsetup
 
@@ -75,8 +82,6 @@ export nodenumber nodenumbercompute nodenumberlonelynode clusterconfig
 : ${vcpus:=2}
 : ${adminvcpus:=1}
 cpuflags=''
-working_dir_orig=`pwd`
-: ${artifacts_dir:=$working_dir_orig/.artifacts}
 start_time=`date`
 : ${cloudvg:=cloud}
 needcvol=1
@@ -187,7 +192,6 @@ function error_exit
             timeout 500 supportconfig | wc &
             wait
         '
-        mkdir -p $artifacts_dir
         $scp root@$adminip:/var/log/*tbz $artifacts_dir/
     fi
     pre_exit_cleanup
@@ -746,7 +750,6 @@ function testsetup
 {
     onadmin testsetup
     local ret=$?
-    mkdir -p "$artifacts_dir"
     $scp root@$adminip:tempest*.log "$artifacts_dir/"
 
     # Register the cloud in Rally and import the results
@@ -868,17 +871,14 @@ function qa_test
     onadmin qa_test
     ret=$?
 
-    mkdir -p .artifacts
-    $scp -r root@$adminip:qa_test.logs/ .artifacts/
+    $scp -r root@$adminip:qa_test.logs/ ${artifacts_dir}
     return $ret
 }
 
 function crowbarbackup
 {
     safely onadmin crowbarbackup "$@"
-    local btargetdir=${artifacts_dir:-.}
-    mkdir -p "$btargetdir"
-    safely $scp root@$adminip:/tmp/backup-crowbar.tar.gz "$btargetdir"
+    safely $scp root@$adminip:/tmp/backup-crowbar.tar.gz ${artifacts_dir}
 }
 
 function crowbarrestore
