@@ -743,6 +743,7 @@ function instnodes
 function proposal
 {
     onadmin proposal
+    onadmin batch_export > ${artifacts_dir}/batch.yml
     return $?
 }
 

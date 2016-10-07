@@ -3404,6 +3404,11 @@ function onadmin_proposal
     set_dashboard_alias
 }
 
+function onadmin_batch_export
+{
+  safely crowbar batch export
+}
+
 function set_node_alias
 {
     local node_name=$1
